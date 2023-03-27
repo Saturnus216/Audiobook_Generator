@@ -19,20 +19,30 @@ root.title("Audiobook Generator") #title of window
 Label(root, text="AUDIOBOOK",font="Arial 15",bg='green').pack() 
 m=tk.IntVar()
 f=tk.IntVar()
+
+import io
+
 def browse():
     global pdfReader
     file= filedialog.askopenfilename(title="Select a PDF", filetype=(("PDF    Files","*.pdf"),("All Files","*.*")))
-    pdfReader = PyPDF2.PdfReader(open(file, 'rb'))
+    with open(file, 'rb') as f:
+        pdf_buffer = io.BytesIO(f.read())
+    pdfReader = PyPDF2.PdfReader(pdf_buffer)
     pathlabel.config(text=file) #configuring the pathlabel Label
+
 
 def save():
     global speaker
     speaker = pyttsx3.init()
 
+    # Concatenate text from all pages
+    full_text = ""
     for page_num in range(len(pdfReader.pages)):
-        text =  pdfReader.pages[page_num].extract_text()
-        speaker.say(text)
-        speaker.stop()
+        text = pdfReader.pages[page_num].extract_text()
+        full_text += text
+
+    speaker.say(full_text)
+    speaker.stop()
 
     voices = speaker.getProperty('voices')
     if m.get() == 0:
@@ -42,10 +52,12 @@ def save():
 
     # Save the audio to a file
     file = filedialog.asksaveasfilename(defaultextension=".mp3")
-    speaker.save_to_file(text, file)
+    speaker.save_to_file(full_text, file)
     speaker.runAndWait()
 
     Label(root,text="The Audio File is Saved").pack()
+
+
     
 rate = engine.getProperty('rate')   
 engine.setProperty('rate', 150)     
